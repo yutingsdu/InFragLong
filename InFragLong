@@ -1,0 +1,231 @@
+#!/bin/bash
+shellpath=`dirname $0`
+output=infraglong.gtf
+LBamFile="NoInput"
+SBamFile="NoInput"
+assBack="stringtie2"
+threads=30
+MinAverageCov=0.001 #--min-average-junc-ratio 
+mincov=2 # 0.5
+TransLen=200
+Seed=2
+datasource="NULL"
+Lreads="NULL"
+prefix="synthetic-short"
+assembledGTF="NoInput"
+sytheticPE="FALSE"
+assembly="FALSE"
+fragment_length=200
+read_length=76
+Index="NULL"
+usage()
+{
+cat << EOT
+
+InFragLong-v.0.0:
+
+Usage:   InFragLong <command> [options]
+
+Commands:
+
+  --synthetic-pe
+        Generate synthetic paired-end (PE) reads and align them to the reference.
+
+  --assembly
+        Run the assembly module to reconstruct transcripts from the available alignments.
+
+  --version, -v
+        Print the current version of InFragLong.
+
+EOT
+}
+
+usage1()
+{
+cat << EOT
+Usage:   InFragLong --synthetic-pe [options]
+
+Options:
+
+  --reads, -r <string>
+        Native long-read RNA-seq data (FASTQ).
+
+  --fragment-length, -F <int>
+        Length of the synthetic fragments. (default: 200)
+
+  --read-length, -R <int>
+        Length of each synthetic read. (default: 76)
+
+  --hisat-index <string>
+        Path to the HISAT2 index prefix.
+
+  --threads, -p <int>
+        Number of threads used for HISAT2 mapping. (default: 30)
+
+A typical InFragLong --synthetic-pe command might be:
+	
+	InFragLong --synthetic-pe --reads long-reads.fastq --hisat-index hisatIndex 
+
+
+===========================================================================
+EOT
+}
+usage2()
+{
+cat << EOT
+
+Usage:   InFragLong --assembly [options]
+
+Options:
+
+  --lbam, -l <string>
+        Alignment file of the native long reads (BAM).
+
+  --sbam, -s <string>
+        Alignment file of the synthetic short reads generated
+        in the "InFragLong --synthetic-pe" step (BAM).
+
+  --ass-backend, -B <string>
+        Assembly backend used in InFragLong
+        (stringtie2 or stringtie3, default: stringtie2).
+
+  --min-cov, -c <float>
+        Minimum reads-per-base coverage required to consider
+        a multi-exon transcript. (default: 2)
+
+
+A typical InFragLong --assembly command is:
+
+	InFragLong --assembly -s synthetic-short.bam  -l native-long.bam -o InFragLong.gtf
+
+Alternatively, users may directly run StringTie in mixed mode
+using both synthetic-short.bam and native-long.bam.
+
+Note that the parameter "-c: minimum reads-per-base coverage for
+multi-exon transcripts" has a different default value:
+    - StringTie default: 1
+    - InFragLong default: 2
+
+EOT
+}
+#usage
+
+# parse options:
+RET=`getopt -o ho:vB:c:s:l:p:I:R:F:r:AS \
+--long help,version,\
+output:,\
+ass-backend:,\
+min-cov:,\
+sbam:,\
+lbam:,\
+threads:,\
+hisat-index:,\
+read-length:,\
+fragment-length:,\
+reads:,\
+assembly,\
+synthetic-pe \
+-n ' * ERROR' -- "$@"`
+
+eval set -- "$RET"
+# set option values
+while true; do
+    case "$1" in
+        -h | --help ) usage; exit 1;;
+        -v | --version ) echo "** The current version of InFragLong is v.0.0 **"; exit 1;;
+
+        -o | --output) output=$2     
+			shift 2 ;;
+        -B | --ass-backend) assBack=$2     
+			shift 2 ;;
+        -c | --min-cov) mincov=$2     
+			shift 2 ;;
+        -s | --sbam) SBamFile=$2     
+			shift 2 ;;
+	-l | --lbam) LBamFile=$2 
+			shift 2 ;;
+	-p | --threads) threads=$2 
+			shift 2 ;;
+	-I | --hisat-index) Index=$2 
+			shift 2 ;;
+	-R | --read-length) read_length=$2 
+			shift 2 ;;
+	-A | --assembly) assembly="TRUE"
+			shift 1 ;;
+	-F | --fragment-length) fragment_length=$2
+			shift 2 ;;
+	-r | --reads) Lreads=$2
+			shift 2 ;;
+	-S | --synthetic-pe) sytheticPE="TRUE"
+			shift 1 ;;
+        -- ) shift; break ;;
+        * ) echoerror "internal error!" ; exit 1 ;;
+     esac
+done
+
+if [ $sytheticPE == "FALSE" ] && [ $assembly == "FALSE" ]; then
+	usage
+	exit
+fi
+
+if [ $sytheticPE == "TRUE" ]; then
+	if [ $Lreads == "NULL" ]; then
+		echo $Lreads
+		usage1
+		exit
+	else
+		if [ $Index == "NULL" ]; then
+
+			echo "ERROR: HISAT2 index not detected."
+			echo ""
+			echo "Please make sure that:"
+			echo "1) HISAT2 is correctly installed."
+			echo "2) The reference genome index has been built."
+			echo ""
+			echo "You can build the index using the following command:"
+    			echo "  hisat2-build reference-genome.fa HisatIndex/Index -p 20"
+			echo ""
+
+		else
+			$shellpath/SplitLongReadsIntoShort -i $Lreads  \
+				--prefix $prefix \
+				--read-length $read_length \
+				--fragment-length $fragment_length \
+				--minlen-be-fragmented 1000
+
+			reads1=$prefix"_1.fastq"
+			reads2=$prefix"_2.fastq"
+			/home/yuting/yuting/Software/hisat2-2.0.5/hisat2 -x $Index -1 $reads1 -2 $reads2 -S $prefix.sam  -p $threads
+			samtools sort  -o $prefix.bam $prefix.sam --threads $threads
+		fi
+
+	fi
+fi
+
+if [ $assembly == "TRUE" ]; then
+	if [ $LBamFile == "NoInput" ]; then
+		usage2
+		exit
+	fi
+	if [ $SBamFile == "NoInput" ]; then
+		usage2
+		exit
+	fi
+	echo $LBamFile  $SBamFile
+	if [ $assBack = "stringtie2" ];then
+		echo "You are using stringtie2!"
+		$shellpath/stringtie-2.2.1.Linux_x86_64/stringtie $SBamFile  $LBamFile --mix -l INFL -o $output -c $mincov
+	elif [ $assBack = "stringtie3" ];then
+		echo "You are using stringtie3!"
+	else
+		echo ""
+		echo "ERROR: Unknown assembly backend!"
+		echo "Please specify stringtie2 or stringtie3!"
+		echo ""
+	fi
+fi
+
+MyDate=$(date "+%d/%m/%Y %T")
+
+exit
+
