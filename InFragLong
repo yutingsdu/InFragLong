@@ -1,15 +1,11 @@
 #!/bin/bash
 shellpath=`dirname $0`
-output=infraglong.gtf
+output="infraglong.gtf"
 LBamFile="NoInput"
 SBamFile="NoInput"
 assBack="stringtie2"
 threads=30
-MinAverageCov=0.001 #--min-average-junc-ratio 
-mincov=2 # 0.5
-TransLen=200
-Seed=2
-datasource="NULL"
+mincov=2 
 Lreads="NULL"
 prefix="synthetic-short"
 assembledGTF="NoInput"
@@ -92,6 +88,9 @@ Options:
   --min-cov, -c <float>
         Minimum reads-per-base coverage required to consider
         a multi-exon transcript. (default: 2)
+
+  --output, -o <string>
+	Files of the assembled transcripts (GTF). (default: infraglong.gtf)
 
 
 A typical InFragLong --assembly command is:
@@ -195,7 +194,7 @@ if [ $sytheticPE == "TRUE" ]; then
 
 			reads1=$prefix"_1.fastq"
 			reads2=$prefix"_2.fastq"
-			/home/yuting/yuting/Software/hisat2-2.0.5/hisat2 -x $Index -1 $reads1 -2 $reads2 -S $prefix.sam  -p $threads
+			hisat2 -x $Index -1 $reads1 -2 $reads2 -S $prefix.sam  -p $threads
 			samtools sort  -o $prefix.bam $prefix.sam --threads $threads
 		fi
 
@@ -217,6 +216,7 @@ if [ $assembly == "TRUE" ]; then
 		$shellpath/stringtie-2.2.1.Linux_x86_64/stringtie $SBamFile  $LBamFile --mix -l INFL -o $output -c $mincov
 	elif [ $assBack = "stringtie3" ];then
 		echo "You are using stringtie3!"
+		$shellpath/stringtie-3.0.0.Linux_x86_64/stringtie $SBamFile  $LBamFile --mix -l INFL -o $output -c $mincov
 	else
 		echo ""
 		echo "ERROR: Unknown assembly backend!"
