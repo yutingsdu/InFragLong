@@ -61,8 +61,6 @@ This step:
 ``` bash
 InFragLong --synthetic-pe \
     -r longreads.fastq \
-    --fragment-length 200 \
-    --read-length 76 \
     --hisat-index HisatIndex/Index \
     -p 30
 ```
@@ -97,7 +95,8 @@ Output:
 -   `infraglong.gtf` --- assembled transcripts
 
 > **Note**\
-> Minimum reads-per-base coverage defaults: - StringTie: **1**\
+> Minimum reads-per-base coverage defaults: 
+> - StringTie: **1**\
 > - InFragLong: **2**
 
 Increasing the threshold helps reduce false positives in noisy datasets.
@@ -107,9 +106,7 @@ Increasing the threshold helps reduce false positives in noisy datasets.
 ## 🔄 Optional: run StringTie manually
 
 ``` bash
-stringtie native-long.bam synthetic-short.bam \
-    -o manual.gtf \
-    -c 2
+stringtie synthetic-short.bam native-long.bam --mix -c 2 -o output.gtf 
 ```
 
 ## 🚨 Common issues
