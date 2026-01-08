@@ -21,10 +21,8 @@ PATH:
 
   Tool                          Recommended version   Usage
   ----------------------------- --------------------- ------------------------------
-  **HISAT2**                    ≥ 2.x                 Mapping synthetic PE reads
-  **SAMtools**                  ≥ 1.10                Sorting / indexing BAM files
-  **StringTie2 / StringTie3**   ≥ 2.2 / 3.x           Transcript assembly
-  **Python / Bash**             ---                   Running pipeline scripts
+    **HISAT2**                    ≥ 2.0.5                 Mapping synthetic PE reads
+    **SAMtools**                  ≥ 1.2.0                Sorting / indexing BAM files
 
 You also need a reference genome (FASTA) and a HISAT2 index:
 
@@ -35,9 +33,9 @@ hisat2-build reference-genome.fa HisatIndex/Index -p 20
 ## ⚙️ Installation
 
 ``` bash
-git clone https://github.com/<your-name>/InFragLong.git
+git clone https://github.com/yutingsdu/InFragLong.git
 cd InFragLong
-chmod +x InFragLong
+sh build.sh
 ```
 
 Check the help:
@@ -77,6 +75,12 @@ Output example:
 
 ### 2️⃣ Assembly using long + synthetic alignments (`--assembly`)
 
+Before running this step, please make sure that the native long reads have already been aligned to the reference genome using minimap2:
+``` bash
+minimap2 -ax splice reference-genome.fa native-long.fastq > native-long.sam
+samtools sort -o native-long.bam native-long.sam
+```
+
 This step integrates native long-read BAM and synthetic short-read BAM
 and reconstructs transcripts using StringTie.
 
@@ -86,12 +90,11 @@ InFragLong --assembly \
     -s synthetic-short.bam \
     -o InFragLong.gtf \
     --ass-backend stringtie2 \
-    -c 2
 ```
 
 Output:
 
--   `InFragLong.gtf` --- assembled transcripts
+-   `infraglong.gtf` --- assembled transcripts
 
 > **Note**\
 > Minimum reads-per-base coverage defaults: - StringTie: **1**\
@@ -117,18 +120,7 @@ stringtie native-long.bam synthetic-short.bam \
 hisat2-build reference-genome.fa HisatIndex/Index
 ```
 
-**Unknown backend name**
-
-Allowed values:
-
-    stringtie2
-    stringtie3
-
-## 📄 Citation
-
-(Add citation when available.)
 
 ## 📬 Contact
 
-Open an issue or pull request if you encounter problems or have
-suggestions.
+yutingsdu@163.com
