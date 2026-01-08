@@ -205,15 +205,19 @@ int main(int argc,char* argv[])
     string format = FAorFQ(file1);
     if(format == "fq")
     {
-	const char* out_file1 = (prefix + "_1.fastq").c_str();
-	const char* out_file2 = (prefix + "_2.fastq").c_str();
+	string out_file1_str = prefix + "_1.fastq";
+	const char* out_file1 = out_file1_str.c_str();
+	string out_file2_str = prefix + "_2.fastq";
+	const char* out_file2 = out_file2_str.c_str();
         load_and_process(file1,out_file1,out_file2);
 
     }
     else if(format == "fa")
     {
-	const char* out_file1 = (prefix + "_1.fasta").c_str();
-	const char* out_file2 = (prefix + "_2.fasta").c_str();
+	string out_file1_str = prefix + "_1.fasta";
+        const char* out_file1 = out_file1_str.c_str();
+        string out_file2_str = prefix + "_2.fasta";
+        const char* out_file2 = out_file2_str.c_str();
         load_and_process_fa(file1, out_file1,out_file2);
     }
     return 0;
