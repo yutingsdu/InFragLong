@@ -96,7 +96,7 @@ Output:
 
 > **Note**\
 > Minimum reads-per-base coverage defaults: 
-> - StringTie: **1**\
+> - StringTie: **1**
 > - InFragLong: **2**
 
 Increasing the threshold helps reduce false positives in noisy datasets.
